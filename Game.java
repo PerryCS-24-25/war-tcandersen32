@@ -6,6 +6,7 @@
  */
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.ArrayList;
 
 import javax.swing.event.MouseInputAdapter;
 
@@ -14,6 +15,15 @@ public class Game
 {
     private final Canvas canvas;
     private final List<Card> cards;
+    private final List<Card> player0Deck;
+    private final List<Card> player1Deck;
+    private final List<Card> player0Ground;
+    private final List<Card> player1Ground;
+    private final Text player0Text;
+    private final Text player1Text;
+    private final Rect bg;
+    private boolean gameOver = false;
+    private final Rect redScreen;
             
     /**
      * Create a window that will display and allow the user to play the game
@@ -26,8 +36,17 @@ public class Game
         canvas.clear();
         canvas.setTitle("MyGame");
         
-        buildDisplay();        
-               
+        player0Deck = new ArrayList<Card>();
+        player1Deck = new ArrayList<Card>();
+        player0Ground = new ArrayList<Card>();
+        player1Ground = new ArrayList<Card>();
+        bg = new Rect(0, 0, canvas.getWidth(), canvas.getHeight(), "green", true);
+        redScreen = new Rect(0, 0, canvas.getWidth(), canvas.getHeight(), "red", false);
+        player0Text = new Text("You", 50, 280, 40, "black", true);
+        player1Text = new Text("Computer", 600, 300, 40, "black", true);
+
+        deal();
+        buildDisplay();  
         // Add a mouse handler to deal with user input
         canvas.addMouseHandler(new MouseInputAdapter() {
             public void mouseClicked(MouseEvent e) {
@@ -42,6 +61,7 @@ public class Game
                 onMove(e.getButton(), e.getX(), e.getY());
             }
         });
+        
     }
     
     /**
@@ -52,28 +72,100 @@ public class Game
         
         buildDisplay();
     }
+
+    /**
+     * Deal out the cards at the beginning of the game
+     */
+    private void deal() {
+        boolean whichPlayer = true;
+        while(cards.size() > 0){
+            int cardNum = (int)(Math.random() * cards.size());
+            if(whichPlayer)
+                player0Deck.add(cards.remove(cardNum));
+            else
+                player1Deck.add(cards.remove(cardNum));
+            whichPlayer = !whichPlayer;
+        }
+    }
+
+    /**
+     * Displays the cards
+     */
+    private void displayCards() {
+        int p0X = 50;
+        int p0Y = 50;
+        for (int i = player0Deck.size() - 1; i >= 0; i--) {
+            Card card = player0Deck.get(i);
+            card.setPosition(p0X, p0Y);
+            card.makeVisible();
+            p0X++;
+            p0Y--;
+        }
+
+        
+        int p1X = 600;
+        int p1Y = 350;
+        for (int i = player1Deck.size() - 1; i >= 0; i--) {
+            Card card = player1Deck.get(i);
+            card.setPosition(p1X, p1Y);
+            card.makeVisible();
+            p1X++;
+            p1Y--;
+        }
+
+        int g0X;
+        int g0Y;
+        boolean faceUp = true;
+        for(int i = 0; i < player0Ground.size(); i++){
+            Card card = player0Ground.get(i);
+            card.makeInvisible();
+            g0X = canvas.getWidth()/2 - card.getWidth()/2 - i * card.getWidth() / 2;
+            g0Y = canvas.getHeight()/2 - 20 - card.getHeight();
+            card.setPosition(g0X, g0Y);
+            if(faceUp){
+                card.turnFaceUp();
+            } else {
+                card.turnFaceDown();
+            }
+            card.makeVisible();
+            faceUp = !faceUp;
+        }
+
+        int g1X;
+        int g1Y;
+        faceUp = true;
+        for(int i = 0; i < player1Ground.size(); i++){
+            Card card = player1Ground.get(i);
+            card.makeInvisible();
+            g1X = canvas.getWidth()/2 - card.getWidth()/2 + i * card.getWidth() / 2;
+            g1Y = canvas.getHeight()/2 + 20;
+            card.setPosition(g1X, g1Y);
+            if(faceUp) {
+                card.turnFaceUp();
+            } else {
+                card.turnFaceDown();
+            }
+            card.makeVisible();
+            faceUp = !faceUp;
+        }
+        canvas.redraw();
+    }
+
+    /**
+     * Play one turn of the game 
+    */
+    private void play(){
+        player0Ground.add(player0Deck.remove(0));
+        player1Ground.add(player1Deck.remove(0));
+        buildDisplay();
+        System.out.println(player0Ground);
+    }
     
     /**
      * Setup the display for the game
      */
     private void buildDisplay() {
-        int x = 0;
-        int y = 3;
-        boolean show = false;
-        for (Card card : cards) {
-            card.setPosition(x, y);
-            if (show) {
-                card.turnFaceUp();
-            }
-            card.makeVisible();
-            
-            x += card.getWidth() / 2;
-            if (x > canvas.getWidth() - (card.getWidth() / 2)) {
-                x = 0;
-                y += card.getHeight()/2;
-            }
-            show = !show;
-        }
+        displayCards();
     }
 
     /**
@@ -83,7 +175,11 @@ public class Game
      * @param y the y coordinate of the mouse position
      */
     private void onClick(int button, int x, int y) {
-        System.out.println("Mouse clicked at " + x + ", " + y + " with button " + button);
+        if(player0Deck.get(0).contains(x, y) || player1Deck.get(0).contains(x, y)){
+            play();
+        } else {
+            flashRed();
+        }
         
     }
 
@@ -95,10 +191,10 @@ public class Game
      */
     private void onMove(int button, int x, int y) {
         if (button == -1) {
-            System.out.println("Mouse moved to " + x + ", " + y);
+            //System.out.println("Mouse moved to " + x + ", " + y);
         }
         else {
-            System.out.println("Mouse dragged to " + x + ", " + y + " with button " + button);
+            //System.out.println("Mouse dragged to " + x + ", " + y + " with button " + button);
         }
     }
     
@@ -107,12 +203,9 @@ public class Game
      */
     public void flashRed() {
         // The user messed up, show them they made a mistake
-        canvas.setBackgroundColor("red");
-        canvas.redraw();
+        redScreen.makeVisible();
         wait(500);
-        
-        canvas.setBackgroundColor("white");
-        canvas.redraw();
+        redScreen.makeInvisible();
     }
     
     /**
