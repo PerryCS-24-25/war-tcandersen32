@@ -234,4 +234,8 @@ public class Card {
         }
         return cards;
     }
+
+    public String toString(){
+        return rank + " of " + suit;
+    }
 }

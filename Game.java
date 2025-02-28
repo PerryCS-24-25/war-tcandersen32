@@ -19,16 +19,27 @@ public class Game
     private final List<Card> player1Deck;
     private final List<Card> player0Ground;
     private final List<Card> player1Ground;
+    private final List<Card> player0Wins;
+    private final List<Card> player1Wins;
     private final Text player0Text;
     private final Text player1Text;
     private final Rect bg;
     private boolean gameOver = false;
     private final Rect redScreen;
+
+    private final List<String> ranks;
+     
             
     /**
      * Create a window that will display and allow the user to play the game
      */
     public Game() {
+        ranks = new ArrayList<String>();
+        ranks.add("2"); ranks.add("3"); ranks.add("4"); ranks.add("5");
+        ranks.add("6"); ranks.add("7"); ranks.add("8"); ranks.add("9");
+        ranks.add("10"); ranks.add("Jack"); ranks.add("Queen");
+        ranks.add("King"); ranks.add("Ace");
+
         cards = Card.loadCards();
 
         // Prepare the canvas
@@ -40,6 +51,8 @@ public class Game
         player1Deck = new ArrayList<Card>();
         player0Ground = new ArrayList<Card>();
         player1Ground = new ArrayList<Card>();
+        player0Wins = new ArrayList<Card>();
+        player1Wins = new ArrayList<Card>();
         bg = new Rect(0, 0, canvas.getWidth(), canvas.getHeight(), "green", true);
         redScreen = new Rect(0, 0, canvas.getWidth(), canvas.getHeight(), "red", false);
         player0Text = new Text("You", 50, 280, 40, "black", true);
@@ -92,10 +105,17 @@ public class Game
      * Displays the cards
      */
     private void displayCards() {
+        bg.makeInvisible();
+        bg.makeVisible();
+        player0Text.makeInvisible();
+        player0Text.makeVisible();
+        player1Text.makeInvisible();
+        player1Text.makeVisible();
         int p0X = 50;
         int p0Y = 50;
         for (int i = player0Deck.size() - 1; i >= 0; i--) {
             Card card = player0Deck.get(i);
+            card.turnFaceDown();
             card.setPosition(p0X, p0Y);
             card.makeVisible();
             p0X++;
@@ -107,7 +127,31 @@ public class Game
         int p1Y = 350;
         for (int i = player1Deck.size() - 1; i >= 0; i--) {
             Card card = player1Deck.get(i);
+            card.turnFaceDown();
             card.setPosition(p1X, p1Y);
+            card.makeVisible();
+            p1X++;
+            p1Y--;
+        }
+
+        p0X = 50;
+        p0Y = 350;
+
+        for (int i = 0; i < player0Wins.size(); i++) {
+            Card card = player0Wins.get(i);
+            card.setPosition(p0X, p0Y);
+            card.turnFaceUp();
+            card.makeVisible();
+            p0X++;
+            p0Y--;
+        }
+
+        p1X = 600;
+        p1Y = 50;
+        for (int i = 0; i < player1Wins.size(); i++) {
+            Card card = player1Wins.get(i);
+            card.setPosition(p1X, p1Y);
+            card.turnFaceUp();
             card.makeVisible();
             p1X++;
             p1Y--;
@@ -117,6 +161,7 @@ public class Game
         int g0Y;
         boolean faceUp = true;
         for(int i = 0; i < player0Ground.size(); i++){
+            System.out.println("Drawing battle ground card");
             Card card = player0Ground.get(i);
             card.makeInvisible();
             g0X = canvas.getWidth()/2 - card.getWidth()/2 - i * card.getWidth() / 2;
@@ -151,14 +196,66 @@ public class Game
         canvas.redraw();
     }
 
+    private void battle (){
+        if(player0Ground.size() == 0 || player1Ground.size() == 0){
+            return;
+        }
+        int val0 = ranks.indexOf(player0Ground.get(player0Ground.size() - 1).getRank());
+        System.out.println("Value 0: " + val0);
+        int val1 = ranks.indexOf(player1Ground.get(player1Ground.size() - 1).getRank());
+        System.out.println("Value 1: " + val1);
+        if(val0 < val1){
+            
+            System.out.println("Player 1 wins");
+            if(Math.random() < 0.5){
+                while(player0Ground.size() > 0){
+                    player1Wins.add(player0Ground.remove(0));
+                }
+                while(player1Ground.size() > 0){
+                    player1Wins.add(player1Ground.remove(0));
+                }
+            } else {
+                while(player1Ground.size() > 0){
+                    player1Wins.add(player1Ground.remove(0));
+                }
+                while(player0Ground.size() > 0){
+                    player1Wins.add(player0Ground.remove(0));
+                }
+            }
+        } else if(val1 < val0){
+            System.out.println("Player 0 wins");
+            if(Math.random() < 0.5){
+                while(player0Ground.size() > 0){
+                    player0Wins.add(player0Ground.remove(0));
+                }
+                while(player1Ground.size() > 0){
+                    player0Wins.add(player1Ground.remove(0));
+                }
+            } else {
+                while(player1Ground.size() > 0){
+                    player0Wins.add(player1Ground.remove(0));
+                }
+                while(player0Ground.size() > 0){
+                    player0Wins.add(player0Ground.remove(0));
+                }
+            }
+        }
+    }
+
     /**
      * Play one turn of the game 
     */
     private void play(){
+        logData();
         player0Ground.add(player0Deck.remove(0));
         player1Ground.add(player1Deck.remove(0));
+        logData();
         buildDisplay();
-        System.out.println(player0Ground);
+        wait(1000);
+        battle();
+        logData();
+        buildDisplay();
+        logData();
     }
     
     /**
@@ -221,6 +318,15 @@ public class Game
         } catch (InterruptedException e) {
             // ignoring exceptions at the moment
         }
+    }
+
+    private void logData(){
+        System.out.println("Player 0 deck: " + player0Deck);
+        System.out.println("Player 1 deck: " + player1Deck);
+        System.out.println("Player 0 battleground: " + player0Ground);
+        System.out.println("Player 1 battleground: " + player1Ground);
+        System.out.println("Player 0 winnings: " + player0Wins);
+        System.out.println("Player 1 winnings: " + player1Wins);
     }
 
     /**
